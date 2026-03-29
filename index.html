@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Game Hứng Quà Của Tôi</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #333; }
+        canvas { border: 2px solid #fff; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // --- KHAI BÁO ẢNH CỦA BẠN ---
+    const bgImg = new Image(); bgImg.src = 'background.png';
+    const playerImg = new Image(); playerImg.src = 'basket.png';
+    const itemImg = new Image(); itemImg.src = 'gift.png';
+
+    let score = 0;
+    let basket = { x: 175, y: 520, w: 70, h: 70 };
+    let gift = { x: Math.random() * 350, y: -50, size: 40, speed: 4 };
+
+    function draw() {
+        // 1. Vẽ hình nền của bạn
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+        // 2. Vẽ cái giỏ (Player) của bạn
+        ctx.drawImage(playerImg, basket.x, basket.y, basket.h, basket.w);
+
+        // 3. Vẽ món quà của bạn
+        ctx.drawImage(itemImg, gift.x, gift.y, gift.size, gift.size);
+
+        // logic di chuyển quà
+        gift.y += gift.speed;
+        if (gift.y > canvas.height) { resetGift(); }
+
+        // Kiểm tra va chạm
+        if (gift.y + gift.size > basket.y && gift.x + gift.size > basket.x && gift.x < basket.x + basket.w) {
+            score++;
+            resetGift();
+            gift.speed += 0.2;
+        }
+
+        // Vẽ điểm
+        ctx.fillStyle = "white"; ctx.font = "20px Arial";
+        ctx.fillText("Điểm: " + score, 20, 40);
+
+        requestAnimationFrame(draw);
+    }
+
+    function resetGift() {
+        gift.y = -50;
+        gift.x = Math.random() * (canvas.width - gift.size);
+    }
+
+    // Điều khiển bằng chuột/tay
+    canvas.addEventListener("mousemove", (e) => {
+        let rect = canvas.getBoundingClientRect();
+        let mouseX = e.clientX - rect.left;
+        basket.x = mouseX - basket.w / 2;
+        // Giữ giỏ trong màn hình
+        if (basket.x < 0) basket.x = 0;
+        if (basket.x > canvas.width - basket.w) basket.x = canvas.width - basket.w;
+    });
+
+    // Chờ ảnh load xong rồi mới chạy game
+    let imagesLoaded = 0;
+    const totalImages = 3;
+    function checkLoad() {
+        imagesLoaded++;
+        if (imagesLoaded === totalImages) draw();
+    }
+    bgImg.onload = checkLoad;
+    playerImg.onload = checkLoad;
+    itemImg.onload = checkLoad;
+
+</script>
+</body>
+</html>
