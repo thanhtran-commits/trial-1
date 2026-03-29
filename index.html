@@ -2,50 +2,100 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Game Hứng Quà Của Tôi</title>
+    <title>Game Hứng Quà - Version Fix</title>
     <style>
-        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #333; }
-        canvas { border: 2px solid #fff; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #333; color: white; font-family: Arial; }
+        canvas { border: 2px solid #fff; background-color: #555; }
+        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 5px; }
     </style>
 </head>
 <body>
+    <div id="status">Đang tải ảnh...</div>
     <canvas id="gameCanvas" width="400" height="600"></canvas>
 
 <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const statusDiv = document.getElementById("status");
 
-    // --- KHAI BÁO ẢNH CỦA BẠN ---
-    const bgImg = new Image(); bgImg.src = 'background.png';
-    const playerImg = new Image(); playerImg.src = 'basket.png';
-    const itemImg = new Image(); itemImg.src = 'gift.png';
+    // --- CÀI ĐẶT ẢNH ---
+    const bgImg = new Image();
+    const playerImg = new Image();
+    const itemImg = new Image();
+
+    // Bạn hãy kiểm tra kỹ tên file trên GitHub và sửa ở đây nếu cần
+    bgImg.src = 'background.png';
+    playerImg.src = 'basket.png';
+    itemImg.src = 'gift.png';
 
     let score = 0;
     let basket = { x: 175, y: 520, w: 70, h: 70 };
     let gift = { x: Math.random() * 350, y: -50, size: 40, speed: 4 };
 
+    let imagesLoaded = 0;
+    const totalImages = 3;
+
+    function checkLoad() {
+        imagesLoaded++;
+        statusDiv.innerText = `Đã tải: ${imagesLoaded}/${totalImages} ảnh`;
+        if (imagesLoaded === totalImages) {
+            statusDiv.style.display = 'none';
+            startGame();
+        }
+    }
+
+    // Báo lỗi nếu ảnh không tìm thấy
+    bgImg.onerror = () => { statusDiv.innerText = "Lỗi: Không tìm thấy background.png"; startGame(); };
+    playerImg.onerror = () => { statusDiv.innerText = "Lỗi: Không tìm thấy basket.png"; startGame(); };
+    itemImg.onerror = () => { statusDiv.innerText = "Lỗi: Không tìm thấy gift.png"; startGame(); };
+
+    bgImg.onload = checkLoad;
+    playerImg.onload = checkLoad;
+    itemImg.onload = checkLoad;
+
+    function startGame() {
+        // Nếu sau 3 giây không load được hết ảnh, vẫn ép chạy game
+        if (typeof gameRunning === 'undefined') {
+            gameRunning = true;
+            draw();
+        }
+    }
+
     function draw() {
-        // 1. Vẽ hình nền của bạn
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        // Vẽ hình nền (nếu lỗi ảnh thì vẽ màu xám)
+        if (bgImg.complete && bgImg.naturalWidth !== 0) {
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        // 2. Vẽ cái giỏ (Player) của bạn
-        ctx.drawImage(playerImg, basket.x, basket.y, basket.h, basket.w);
+        // Vẽ cái giỏ
+        if (playerImg.complete && playerImg.naturalWidth !== 0) {
+            ctx.drawImage(playerImg, basket.x, basket.y, basket.w, basket.h);
+        } else {
+            ctx.fillStyle = "brown";
+            ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
+        }
 
-        // 3. Vẽ món quà của bạn
-        ctx.drawImage(itemImg, gift.x, gift.y, gift.size, gift.size);
+        // Vẽ món quà
+        if (itemImg.complete && itemImg.naturalWidth !== 0) {
+            ctx.drawImage(itemImg, gift.x, gift.y, gift.size, gift.size);
+        } else {
+            ctx.fillStyle = "red";
+            ctx.fillRect(gift.x, gift.y, gift.size, gift.size);
+        }
 
-        // logic di chuyển quà
+        // Logic game
         gift.y += gift.speed;
         if (gift.y > canvas.height) { resetGift(); }
 
-        // Kiểm tra va chạm
         if (gift.y + gift.size > basket.y && gift.x + gift.size > basket.x && gift.x < basket.x + basket.w) {
             score++;
             resetGift();
             gift.speed += 0.2;
         }
 
-        // Vẽ điểm
         ctx.fillStyle = "white"; ctx.font = "20px Arial";
         ctx.fillText("Điểm: " + score, 20, 40);
 
@@ -57,27 +107,14 @@
         gift.x = Math.random() * (canvas.width - gift.size);
     }
 
-    // Điều khiển bằng chuột/tay
     canvas.addEventListener("mousemove", (e) => {
         let rect = canvas.getBoundingClientRect();
         let mouseX = e.clientX - rect.left;
         basket.x = mouseX - basket.w / 2;
-        // Giữ giỏ trong màn hình
-        if (basket.x < 0) basket.x = 0;
-        if (basket.x > canvas.width - basket.w) basket.x = canvas.width - basket.w;
     });
 
-    // Chờ ảnh load xong rồi mới chạy game
-    let imagesLoaded = 0;
-    const totalImages = 3;
-    function checkLoad() {
-        imagesLoaded++;
-        if (imagesLoaded === totalImages) draw();
-    }
-    bgImg.onload = checkLoad;
-    playerImg.onload = checkLoad;
-    itemImg.onload = checkLoad;
-
+    // Phòng trường hợp ảnh load quá lâu, sau 4 giây tự chạy bằng hình khối
+    setTimeout(startGame, 4000);
 </script>
 </body>
 </html>
